@@ -87,5 +87,6 @@ async def delete_profile(user: user_dependency, db: db_dependency, profile_id: i
         raise HTTPException(status_code=404, detail="Profile is not found")
     user_model = db.query(Users).filter(Users.id == user.get('id')).first()
     user_model.profile_id = None
+    db.add(user_model)
     db.delete(profile_model)
     db.commit()
