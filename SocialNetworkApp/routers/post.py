@@ -29,6 +29,9 @@ user_dependency = Annotated[dict, Depends(get_current_user)]
 async def create_post(user: user_dependency, db: db_dependency, post_request: PostRequest):
     if user is None:
         raise HTTPException(status_code=401, detail="Authentication Failed")
+    user_model = db.query(Users).filter(Users.id == user.get('id')).first()
+    if user_model.profile_id is None:
+        raise HTTPException(status_code=404, detail="Profile not found")
     post_model = Posts(**post_request.model_dump(), user_id = user.get('id'))
     db.add(post_model)
     db.commit()
@@ -37,6 +40,9 @@ async def create_post(user: user_dependency, db: db_dependency, post_request: Po
 async def update_post(user: user_dependency, db: db_dependency, post_request: PostRequest, post_id: int):
     if user is None:
         raise HTTPException(status_code=401, detail="Authentication Failed")
+    user_model = db.query(Users).filter(Users.id == user.get('id')).first()
+    if user_model.profile_id is None:
+        raise HTTPException(status_code=404, detail="Profile not found")
     post_model = db.query(Posts).filter(Posts.id == post_id).first()
     if post_model is None:
         raise HTTPException(status_code=404, detail="Post not found")
@@ -50,12 +56,18 @@ async def update_post(user: user_dependency, db: db_dependency, post_request: Po
 async def read_post(user: user_dependency, db: db_dependency):
     if user is None:
         raise HTTPException(status_code=401, detail="Authentication Failed")
+    user_model = db.query(Users).filter(Users.id == user.get('id')).first()
+    if user_model.profile_id is None:
+        raise HTTPException(status_code=404, detail="Profile not found")
     return db.query(Posts).filter(Posts.user_id == user.get('id')).all()
 
 @router.delete('/{post_id}', status_code=HTTP_204_NO_CONTENT)
 async def delete_post(user: user_dependency, db: db_dependency, post_id: int):
     if user is None:
         raise HTTPException(status_code=401, detail="Authentication Failed")
+    user_model = db.query(Users).filter(Users.id == user.get('id')).first()
+    if user_model.profile_id is None:
+        raise HTTPException(status_code=404, detail="Profile not found")
     post_model = db.query(Posts).filter(Posts.id == post_id).first()
     if post_model is None:
         raise HTTPException(status_code=404, detail="Post not found")
