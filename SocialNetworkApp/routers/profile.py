@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException
 from fastapi.params import Depends, Path
 from sqlalchemy.orm import Session
@@ -6,11 +6,8 @@ from typing import Annotated
 from starlette import status
 from starlette.status import HTTP_201_CREATED, HTTP_200_OK, HTTP_204_NO_CONTENT
 from database import SessionLocal
-from passlib.context import CryptContext
 from schemas import ProfileRequest
 from models import Users, Profiles
-from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
-from jose import jwt, JWTError
 from .user import get_current_user
 
 router = APIRouter(
@@ -38,9 +35,8 @@ async def create_profile(user: user_dependency, db: db_dependency,
         name = profile_request.name,
         surname = profile_request.surname,
         date_of_birth = profile_request.date_of_birth,
-        created_at = date.today(),
         is_verified = False,
-        last_login = date.today(),
+        last_login = datetime.now(timezone.utc),
         is_active = True
     )
     db.add(profile_model)
@@ -62,6 +58,10 @@ async def read_profile(user: user_dependency, db: db_dependency, profile_id: int
     profile_model = db.query(Profiles).filter(Profiles.id == profile_id).first()
     if profile_model is None:
         raise HTTPException(status_code=404, detail="Profile is not found")
+    profile_model.last_login = datetime.now(timezone.utc)
+    db.add(profile_model)
+    db.commit()
+    profile_model = db.query(Profiles).filter(Profiles.id == profile_id).first()
     return profile_model
 
 @router.put('/{profile_id}', status_code=HTTP_204_NO_CONTENT)
@@ -75,6 +75,8 @@ async def update_profile(user: user_dependency, db: db_dependency, profile_reque
     profile_model.name = profile_request.name
     profile_model.surname = profile_request.surname
     profile_model.date_of_birth = profile_request.date_of_birth
+    profile_model.updated_at = datetime.now(timezone.utc)
+    profile_model.last_login = datetime.now(timezone.utc)
     db.add(profile_model)
     db.commit()
 

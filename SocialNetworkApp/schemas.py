@@ -17,3 +17,7 @@ class ProfileRequest(BaseModel):
     name: str
     surname: str
     date_of_birth: date
+
+class PostRequest(BaseModel):
+    title: str
+    text: str
