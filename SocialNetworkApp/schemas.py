@@ -1,13 +1,14 @@
 from datetime import date
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
+from typing import Optional
+from models import UserRole
+
 
 class CreateUserRequest(BaseModel):
-    name: str
-    surname: str
     username: str
     password: str
-    email: str
-    role: str
+    email: EmailStr
+    role: Optional[UserRole] = None
 
 class Token(BaseModel):
     access_token: str
@@ -20,4 +21,8 @@ class ProfileRequest(BaseModel):
 
 class PostRequest(BaseModel):
     title: str
+    text: str
+
+class CommentRequest(BaseModel):
+    post_id: int
     text: str

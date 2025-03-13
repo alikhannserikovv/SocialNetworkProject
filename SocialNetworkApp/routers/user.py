@@ -1,5 +1,5 @@
 from datetime import timedelta, datetime, timezone
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Path
 from fastapi.params import Depends
 from sqlalchemy.orm import Session
 from typing import Annotated
@@ -12,8 +12,8 @@ from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from jose import jwt, JWTError
 
 router = APIRouter(
-    prefix='/user',
-    tags=['user']
+    prefix='/users',
+    tags=['Users']
 )
 
 SECRET_KEY = '1f81203ec113a6c770bc08cafbacfd2b47152dd54de23e5a19b30371c2ac632c'
@@ -54,8 +54,12 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate user")
 
-@router.post('/register', status_code=status.HTTP_201_CREATED)
+@router.post('', status_code=status.HTTP_201_CREATED)
 async def create_user(db: db_dependency, user_request: CreateUserRequest):
+    if db.query(Users).filter(Users.username == user_request.username).first():
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Username is already taken")
+    elif db.query(Users).filter(Users.email == user_request.email).first():
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email is already in use")
     user_model = Users(
         username = user_request.username,
         email = user_request.email,
@@ -65,8 +69,12 @@ async def create_user(db: db_dependency, user_request: CreateUserRequest):
     db.add(user_model)
     db.commit()
 
-# Retrieves jwt token with all
-# the info about the user back to user
+@router.delete('/{user_id}', status_code=status.HTTP_204_NO_CONTENT)
+async def delete_user(db: db_dependency, user_id: int = Path(gt=0)):
+    user_model = db.query(Users).filter(Users.id == user_id).first()
+    db.delete(user_model)
+    db.commit()
+
 @router.post('/token', response_model=Token)
 async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
                                  db: db_dependency):
